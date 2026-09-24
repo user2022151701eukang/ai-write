@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: paper-writer-backend
+    ports: ["8000:8000"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/paper_writer
+      # 默认使用千问（阿里云百炼 DashScope），启动前先 export QWEN_API_KEY=你的Key
+      - LLM_PROVIDER=qwen
+      - QWEN_API_KEY=${QWEN_API_KEY}
+      - EMBEDDING_PROVIDER=qwen
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-random-secret-key}
+      - VECTOR_DB_PATH=/app/data/chroma
+    volumes:
+      - chroma_data:/app/data
+    depends_on: [postgres]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: paper-writer-frontend
+    ports: ["3000:80"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: paper_writer
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  chroma_data:
